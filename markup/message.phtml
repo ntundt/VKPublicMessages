@@ -1,0 +1,97 @@
+<?php
+
+    $time = new TimeAnalyze($messages[$i]['date']);
+    $showpic = false;
+    if (isset($messages[$i + 1])) {
+        if($time->timestamp - 7200 > $messages[$i + 1]['date']) { 
+            $showpic = true; ?>
+            </div><div class="timestamp"><?=$time->getFormattedTime();?></div>
+        <?php }
+    }
+    if (isset($messages[$i + 1]) and !$showpic) {
+        if ($messages[$i]['from_id'] != $messages[$i + 1]['from_id']) { ?>
+            </div>
+            <div class="list-container">
+                <div class="list-head">
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td class="left-part">
+                                    <img class="user-photo" src="<?=$userdata->find('id', $messages[$i]['from_id'])['photo_50']?>">
+                                    <div class="check">
+                                        <img src="/images/checked.png" class="checked-head">
+                                    </div>
+                                </td>
+                                <td class="right-part">
+                                    <div class="user-head-block">
+                                        <a class="user-name-href" href="https://vk.com/id<?=$messages[$i]['from_id']?>"><?=$userdata->find('id', $messages[$i]['from_id'])['first_name']?> <?=$userdata->find('id', $messages[$i]['from_id'])['last_name']?></a>
+                                        <span class="user-head-timemark"><?=$time->getTime();?></span>
+                                    </div>
+                                    <div class="msg-head-content"><?php
+                                        echo str_replace("\n", '<br>', $messages[$i]['text']);
+                                    ?> <?php
+                                    if (isset($messages[$i]['attachments'][0]['photo'])) {
+                                        echo '<img src="'.(array_pop($messages[$i]['attachments'][0]['photo']['sizes'])['url']).'">';
+                                    }
+                                ?></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+        <?php } else if (!$showpic) { ?>
+            <div class="list-elem">
+                <table>
+                    <tbody>
+                        <tr>
+                            <td class="left-part">
+                                <div class="check">
+                                    <img src="/images/checked.png" class="checked-body">
+                                </div>
+                            </td>
+                            <td class="right-part">
+                                <div class="msg-body-content"><?php
+                                    echo str_replace("\n", '<br>', $messages[$i]['text']);
+                                ?><?php
+                                    if (isset($messages[$i]['attachments'][0]['photo'])) {
+                                        echo '<img src="'.(array_pop($messages[$i]['attachments'][0]['photo']['sizes'])['url']).'">';
+                                    }
+                                ?></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        <?php }
+    } else { ?>
+        <div class="list-container">
+            <div class="list-head">
+                <table>
+                    <tbody>
+                        <tr>
+                            <td class="left-part">
+                                <img class="user-photo" src="<?=$userdata->find('id', $messages[$i]['from_id'])['photo_50']?>">
+                                <div class="check">
+                                    <img src="/images/checked.png" class="checked-head">
+                                </div>
+                            </td>
+                            <td class="right-part">
+                                <div class="user-head-block">
+                                    <a class="user-name-href" href="https://vk.com/id<?=$messages[$i]['from_id']?>"><?=$userdata->find('id', $messages[$i]['from_id'])['first_name']?></a>
+                                    <span class="user-head-timemark"><?=$time->getTime();?></span>
+                                </div>
+                                <div class="msg-head-content"><?php
+                                    echo str_replace("\n", '<br>', $messages[$i]['text']);
+                                ?><?php
+                                    if (isset($messages[$i]['attachments'][0]['photo'])) {
+                                        echo '<img src="'.(array_pop($messages[$i]['attachments'][0]['photo']['sizes'])['url']).'">';
+                                    }
+                                ?></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+    <?php }
+
+?>

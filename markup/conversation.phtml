@@ -1,0 +1,195 @@
+<?php 
+    if ($conversations[$i]['conversation']['peer']['id'] != 100) {
+        $time = new TimeAnalyze($conversations[$i]['last_message']['date']);
+    
+        if(strcmp ($conversations[$i]['conversation']['peer']['type'], 'user') == 0) {
+            $object = $userdata->find('id', $conversations[$i]['conversation']['peer']['id']);
+            $object['type'] = 0;
+        } else if (strcmp($conversations[$i]['conversation']['peer']['type'], 'chat') == 0) {
+            $object = array(
+                'name' => $conversations[$i]['conversation']['chat_settings']['title'],
+                'photo_100' => isset($conversations[$i]['conversation']['chat_settings']['photo'])?$conversations[$i]['conversation']['chat_settings']['photo']['photo_100']:'/images/soviet_50.png',
+                'type' => 1
+            );
+        } else if (strcmp($conversations[$i]['conversation']['peer']['type'], 'group') == 0) {
+            $object = $groupdata->find('id', -$conversations[$i]['conversation']['peer']['id']);
+            $object['type'] = 2;
+        }
+    
+?>
+<a class="like-a-text" href="view.php?peer=<?=urlencode($conversations[$i]['conversation']['peer']['id']);?><?=(isset($_GET['access_token'])?'&access_token='.$_GET['access_token']:'');?>">
+    <div class="message<?=
+        (
+            $i == 0?'':(
+                isset($conversations[$i]['conversation']['unread_count'])?' border-top':(
+                    isset($conversations[$i - 1]['conversation']['unread_count'])?' border-top':''
+                )
+            )
+        )?><?=($i == count($conversations) - 1?' bottom-rounded':'')?><?=(isset($conversations[$i]['conversation']['unread_count'])?' always-blue':'')?>">
+        <table class="msg-body">
+            <tbody class="tbody-message">
+                <tr>
+                    <td class="img-container"><img class="conversation-photo" src="<?=$object['photo_100']?>"></td>
+                    <td class="msg-container<?=
+                        (
+                            $i == 0?' no-border-top':(
+                                isset($conversations[$i]['conversation']['unread_count'])?' no-border-top':(
+                                    isset($conversations[$i - 1]['conversation']['unread_count'])?' no-border-top':' border-top'
+                                )
+                            )
+                        )?>">
+                        <div class="dialog-name"><span class="dialog-name"><?php 
+                            if ($object['type'] == 0) {
+                                echo $object['first_name'] . ' ' . $object['last_name'];
+                            } else if ($object['type'] == 1) {
+                                echo $object['name'];
+                            } else if ($object['type'] == 2) {
+                                echo $object['name'];
+                            }
+                        ?></span></div>
+                        <div class="preview-text"><?php
+                            if(!isset($conversations[$i]['last_message']['action'])) {
+                                if ((($object['type'] == 0) or ($object['type'] == 2)) and $conversations[$i]['last_message']['out']) {
+                                    $thing = $userdata->find('id', $conversations[$i]['last_message']['from_id']);
+                                    if($thing == -1) {
+                                        $out = $groupdata->find('id', -$conversations[$i]['last_message']['from_id'])['photo_100'] . '_';
+                                    } else {
+                                        $out = $thing['photo_100'];
+                                    }
+                                    echo '<img src="' . $out . '">';
+                                } else if ($object['type'] == 1) {
+                                    $thing = $userdata->find('id', $conversations[$i]['last_message']['from_id']);
+                                    if($thing == -1) {
+                                        $out = $groupdata->find('id', -$conversations[$i]['last_message']['from_id'])['photo_100'] . '_';
+                                    } else {
+                                        $out = $thing['photo_100'];
+                                    }
+                                    echo '<img src="' . $out . '">';
+                                }
+                            }
+                        ?><span class="preview-text"><?php
+                            $out = '';
+                            if (isset($conversations[$i]['last_message']['attachments'][0])) {
+                                if(strcmp('', $conversations[$i]['last_message']['text']) == 0) {
+                                    $out .= '<span class="blue-text">';
+                                    switch($conversations[$i]['last_message']['attachments'][0]['type']) {
+                                        case 'photo':
+                                            $out .= 'Фотокарточка';
+                                            break;
+                                        case 'video':
+                                            $out .= 'Кинолента';
+                                            break;
+                                        case 'audio':
+                                            $out .= 'Грамзапись';
+                                            break;
+                                        case 'doc':
+                                            $out .= 'Документ';
+                                            break;
+                                        case 'link':
+                                            $out .= 'Направление';
+                                            break;
+                                        case 'market':
+                                            $out .= 'Магазин';
+                                            break;
+                                        case 'market_album':
+                                            $out .= 'Каталог';
+                                            break;
+                                        case 'wall':
+                                            $out .= 'Тема с кухни';
+                                            break;
+                                        case 'wall_reply':
+                                            $out .= 'Возражение';
+                                            break;
+                                        case 'sticker':
+                                            $out .= 'Марка';
+                                            break;
+                                        case 'gift':
+                                            $out .= 'Гостинец';
+                                            break;
+                                    }
+                                    $out .= '</span>';
+                                } else {
+                                    $out .= $conversations[$i]['last_message']['text'];
+                                }
+                            } else if (isset($conversations[$i]['last_message']['action'])) {
+                                switch($conversations[$i]['last_message']['action']['type']) {
+                                    case 'chat_photo_update':
+                                        $dat = $userdata->find('id', $conversations[$i]['last_message']['from_id']);
+                                        $out .= $dat['first_name'] . ' ' . $dat['last_name'];
+                                        $out .= ' обновил' . ($dat['sex'] == 1?'а':'') . ' знамя пленума.';
+                                        break;
+                                    case 'chat_photo_remove':
+                                        $dat = $userdata->find('id', $conversations[$i]['last_message']['from_id']);
+                                        $out .= $dat['first_name'] . ' ' . $dat['last_name'];
+                                        $out .= ' ' . ($dat['sex'] == 1?'сожгла':'сжёг') . ' знамя пленума.';
+                                        break;
+                                    case 'chat_create':
+                                        $dat = $userdata->find('id', $conversations[$i]['last_message']['from_id']);
+                                        $out .= $dat['first_name'] . ' ' . $dat['last_name'];
+                                        $out .= ' созвал' . ($dat['sex'] == 1?'а':'') . ' пленум «'.$conversations[$i]['last_message']['action']['text'].'».';
+                                        break;
+                                    case 'chat_title_update':
+                                        $dat = $userdata->find('id', $conversations[$i]['last_message']['from_id']);
+                                        $out .= $dat['first_name'] . ' ' . $dat['last_name'];
+                                        $out .= ' сменил' . ($dat['sex'] == 1?'а':'') . ' повестку пленума на «'.$conversations[$i]['last_message']['action']['text'].'».';
+                                        break;
+                                    case 'chat_invite_user':
+                                        $dat = $userdata->find('id', $conversations[$i]['last_message']['from_id']);
+                                        $out .= $dat['first_name'] . ' ' . $dat['last_name'];
+                                        $ud = $userdata->find('id', $conversations[$i]['last_message']['action']['member_id']);
+                                        $out .= ' делегировал' . ($dat['sex'] == 1?'а':'') . ' в пленум тов. ' . $ud['first_name_acc'] . ' ' . $ud['last_name_acc'] . '.';
+                                        break;
+                                    case 'chat_kick_user':
+                                        $dat = $userdata->find('id', $conversations[$i]['last_message']['from_id']);
+                                            $out .= $dat['first_name'] . ' ' . $dat['last_name'];
+                                        if($conversations[$i]['last_message']['action']['member_id'] == $conversations[$i]['last_message']['from_id']) {
+                                            $out .= ' добровольно ' . ($dat['sex'] == 1?'вышла':'вышел') . ' из состава пленума.';
+                                        } else {
+                                            $ud = $userdata->find('id', $conversations[$i]['last_message']['action']['member_id']);
+                                            $out .= ' исключил' . ($dat['sex'] == 1?'а':'') . ' ' . $ud['first_name_acc'] . ' ' . $ud['last_name_acc'] . ' из состава пленума.';
+                                        }
+                                        break;
+                                    case 'chat_pin_message':
+                                        $dat = $userdata->find('id', $conversations[$i]['last_message']['from_id']);
+                                        $out .= $dat['first_name'] . ' ' . $dat['last_name'];
+                                        $out .= ' закрепил' . ($dat['sex'] == 1?'а':'') . ' телеграмму.';
+                                        break;
+                                    case 'chat_unpin_message':
+                                        $dat = $userdata->find('id', $conversations[$i]['last_message']['from_id']);
+                                        $out .= $dat['first_name'] . ' ' . $dat['last_name'];
+                                        $out .= ' открепил' . ($dat['sex'] == 1?'а':'') . ' телеграмму.';
+                                        break;
+                                    case 'chat_invite_user_by_link':
+                                        $dat = $userdata->find('id', $conversations[$i]['last_message']['from_id']);
+                                        $out .= $dat['first_name'] . ' ' . $dat['last_name'];
+                                        $out .= ' делегирован' . ($dat['sex'] == 1?'а':'') . ' в пленум по направлению.';
+                                        break;
+                                }
+                            } else if (isset($conversations[$i]['last_message']['fwd_messages'][0])) {
+                                $c = count($conversations[$i]['last_message']['fwd_messages']);
+                                $out .= '<span class="blue-text">' . $c;
+                                if (($c % 100 >= 10 and $c % 100 <=20) or
+                                    ($c % 10 >= 5 and $c % 10 <= 9) or 
+                                    ($c % 10 == 0)) {
+                                    $out .= ' телеграмм';
+                                } else if ($c % 10 >= 2 and $c % 10 <= 4) {
+                                    $out .= ' телеграммы';
+                                } else if ($c % 10 == 1) {
+                                    $out .= ' телеграмма';
+                                }
+                                $out .= '</span>';
+                            } else {
+                                $out .= $conversations[$i]['last_message']['text'];
+                            }
+                            
+                            echo $out;
+                        ?></span></div>
+                        <div class="time-conv-list"><span><?=$time->getFormattedTime();?></span></div>
+                        <?=(isset($conversations[$i]['conversation']['unread_count'])?'<div class="unread-block"><span>' . ($conversations[$i]['conversation']['unread_count'] >= 10000 ? intdiv($conversations[$i]['conversation']['unread_count'], 1000) . 'K' : $conversations[$i]['conversation']['unread_count']) . '</span></div>' : '');?>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</a>
+<?php } ?>
