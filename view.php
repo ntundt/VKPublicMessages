@@ -1,104 +1,101 @@
 <?php 
     
-    require_once 'request.php';
-    require_once 'timeanalyze.php';
-    require_once 'config.php';
-    date_default_timezone_set('Europe/Minsk');
-    $request = new Request(isset($_GET['access_token'])?$_GET['access_token']:ACCESS_TOKEN);
-    $insert_to_head = '';
-    
-    function console_log($what) {
-        global $insert_to_head;
-        $insert_to_head .= '<script>console.log("'.$what.'")</script>';
+require_once 'request.php';
+require_once 'timeanalyze.php';
+require_once 'config.php';
+require_once 'datacontainer.php';
+date_default_timezone_set('Europe/Minsk');
+$insert_to_head = '';
+$datacontainer = new DataContainer();
+
+function console_log($what) {
+    global $insert_to_head;
+    $insert_to_head .= '<script>console.log("'.$what.'")</script>';
+}
+function alert($what) {
+    global $insert_to_head;
+    $insert_to_head .= '<script>alert("'.$what.'");</script>';
+}
+
+function getMaxSize($where) {
+    $sizes = array();
+}
+
+function drawConversations($conversations, $userdata, $groupdata = -1) {
+    require_once 'finder.php';
+    $userdata = new Finder($userdata);
+    if($groupdata !== -1) {
+        $groupdata = new Finder($groupdata);
     }
-    function alert($what) {
-        global $insert_to_head;
-        $insert_to_head .= '<script>alert("'.$what.'");</script>';
+    for($i = 0; $i < count($conversations); $i++) {
+        include 'markup/conversation.phtml';
     }
-    
-    function getMaxSize($where) {
-        $sizes = array();
+}
+
+function drawMessages($messages, $userdata, $groupdata = -1) {
+    require_once 'finder.php';
+    $userdata = new Finder($userdata);
+    if($groupdata !== -1) {
+        $groupdata = new Finder($groupdata);
     }
-    
-    function drawConversations($conversations, $userdata, $groupdata = -1) {
-        require_once 'finder.php';
-        $userdata = new Finder($userdata);
-        if($groupdata !== -1) {
-            $groupdata = new Finder($groupdata);
-        }
-        for($i = 0; $i < count($conversations); $i++) {
-            include 'markup/conversation.phtml';
-        }
+    for($i = count($messages) - 1; $i >= 0 ; $i--) {
+        include 'markup/message.phtml';
     }
-    
-    function drawMessages($messages, $userdata, $groupdata = -1) {
-        require_once 'finder.php';
-        $userdata = new Finder($userdata);
-        if($groupdata !== -1) {
-            $groupdata = new Finder($groupdata);
+}
+
+function showError($error) {
+    global $insert_to_head;
+    $insert_to_head .= '<script>alert("There is an error during execution. Code: '.$error['error_code'].'; Message: '.$error['error_msg'].'")</script>';
+    var_dump($error);
+}
+
+$request = new Request(isset($_GET['access_token'])?$_GET['access_token']:ACCESS_TOKEN);
+$request->addParameter('count', 50);
+$request->addParameter('extended', 1);
+$request->addParameter('filds', 'photo_50,photo_100,sex,first_name_acc,last_name_acc');
+if (isset($_GET['offset'])) {
+    $request->addParameter('offset', $_GET['offset']);
+}
+
+if(!isset($_GET['peer']) and !isset($_GET['search'])) {
+    $request->setMethod('messages.getConversations');
+    $request->perform();
+    if($request->errno) {
+        function drawContent($items, $userdata, $groupdata = -1) {
+            drawConversations($items, $userdata, $groupdata);
         }
-        for($i = count($messages) - 1; $i >= 0 ; $i--) {
-            include 'markup/message.phtml';
-        }
+        if (isset($request->response['profiles'])) $datacontainer->addData($request->response['profiles']);
+        if (isset($request->response['groups'])) $datacontainer->addData($request->response['groups']);
+    } else {
+        showError($request->error);
     }
-    
-    function showError($error) {
-        global $insert_to_head;
-        $insert_to_head .= '<script>window.onload=function(){alert("There is an error during execution. Code: '.$error['error_code'].'; Message: '.$error['error_msg'].'")}</script>';
-        var_dump($error);
+} else if(isset($_GET['peer'])) {
+    $request->setMethod('messages.getHistory');
+    $request->addParameter('peer_id', $_GET['peer']);
+    $request->perform();
+    if($request->errno) {
+        function drawContent($items, $userdata, $groupdata = -1) {
+            drawMessages($items, $userdata);
+        }
+        if (isset($request->response['profiles'])) $datacontainer->addData($request->response['profiles']);
+        if (isset($request->response['groups'])) $datacontainer->addData($request->response['groups']);
+    } else {
+        showError($request->error);
     }
-    
-    if(!isset($_GET['peer']) and !isset($_GET['search'])) {
-        $request->setMethod('messages.getConversations');
-        $request->addParameter('count', 50);
-        $request->addParameter('extended', 1);
-        if(isset($_GET['offset'])) {
-            $request->addParameter('offset', $_GET['offset']);
+} else if(isset($_GET['search'])) {
+    $request->setMethod('messages.search');
+    $request->addParameter('q', $_GET['search']);
+    $request->perform();
+    if($request->errno) {
+        function drawContent($items, $userdata) {
+            drawMessages($items, $userdata, true);
         }
-        $request->addParameter('fields', 'photo_50,photo_100,sex,first_name_acc,last_name_acc');
-        $request->perform();
-        if($request->errno) {
-            function drawContent($items, $userdata, $groupdata = -1) {
-                drawConversations($items, $userdata, $groupdata);
-            }
-        } else {
-            showError($request->error);
-        }
-    } else if(isset($_GET['peer'])) {
-        $request->setMethod('messages.getHistory');
-        $request->addParameter('count', 50);
-        $request->addParameter('extended', 1);
-        if(isset($_GET['offset'])) {
-            $request->addParameter('offset', $_GET['offset']);
-        }
-        $request->addParameter('fields', 'photo_50,photo_100,sex,first_name_acc,last_name_acc');
-        $request->addParameter('peer_id', $_GET['peer']);
-        $request->perform();
-        if($request->errno) {
-            function drawContent($items, $userdata, $groupdata = -1) {
-                drawMessages($items, $userdata);
-            }
-        } else {
-            showError($request->error);
-        }
-    } else if(isset($_GET['search'])) {
-        $request->setMethod('messages.search');
-        $request->addParameter('count', 50);
-        $request->addParameter('extended', 1);
-        if(isset($_GET['offset'])) {
-            $request->addParameter('offset', $_GET['offset']);
-        }
-        $request->addParameter('fields', 'photo_50,photo_100,sex,first_name_acc,last_name_acc');
-        $request->addParameter('q', $_GET['search']);
-        $request->perform();
-        if($request->errno) {
-            function drawContent($items, $userdata) {
-                drawMessages($items, $userdata, true);
-            }
-        } else {
-            showError($request->error);
-        }
+        if (isset($request->response['profiles'])) $datacontainer->addData($request->response['profiles']);
+        if (isset($request->response['groups'])) $datacontainer->addData($request->response['groups']);
+    } else {
+        showError($request->error);
     }
+}
 
 ?>
 <!DOCTYPE html>
@@ -354,7 +351,7 @@
                 <?php 
                     drawContent(
                         $request->response['items'], 
-                        $request->response['profiles'], 
+                        isset($request->response['profiles'])?$request->response['profiles']:$request->response['groups'], 
                         (isset($request->response['groups'])?$request->response['groups']:-1)
                     ); 
                 ?>
